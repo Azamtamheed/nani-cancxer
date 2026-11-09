@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grandma's Care Circle - Daily Care & Medication Schedule</title>
+  <!-- Tailwind CSS CDN for instant styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React & ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    function App() {
+      const [date, setDate] = React.useState(new Date().toISOString().split('T')[0]);
+      const [completedTasks, setCompletedTasks] = React.useState({});
+      const [medicineStock, setMedicineStock] = React.useState({
+        "Pantop 40": { count: 30, unit: "tablets" },
+        "Mucaine Gel": { count: 2, unit: "bottles" },
+        "Telvas 40": { count: 30, unit: "tablets" },
+        "Addna": { count: 60, unit: "tablets" },
+        "Dexamethasone": { count: 30, unit: "tablets" },
+        "Chymoral Forte": { count: 60, unit: "tablets" },
+        "Cough Syrup": { count: 3, unit: "bottles" },
+        "Natrise 15mg": { count: 30, unit: "tablets" },
+        "Mirago 50": { count: 30, unit: "tablets" },
+        "Lenvatinib 4mg": { count: 120, unit: "capsules" }
+      });
+      const [customPhotos, setCustomPhotos] = React.useState({});
+      const [activeTab, setActiveTab] = React.useState('schedule');
+
+      const scheduleItems = [
+        { id: "1", time: "08:00 AM", name: "Pantop 40 (Pantoprazole 40 mg)", dose: "1 Tablet", instruction: "Empty stomach", category: "Medication", key: "Pantop 40" },
+        { id: "2", time: "08:45 AM", name: "Mucaine Gel", dose: "1-2 Spoons", instruction: "Before breakfast", category: "Medication", key: "Mucaine Gel" },
+        { id: "3", time: "09:00 AM", name: "Breakfast", dose: "Soft / Regular Meal", instruction: "Morning meal", category: "Meal", key: null },
+        { id: "4", time: "09:30 AM", name: "Telvas 40", dose: "1 Tablet", instruction: "After breakfast", category: "Medication", key: "Telvas 40" },
+        { id: "5", time: "09:35 AM", name: "Addna", dose: "Half (½) Tablet", instruction: "5 mins after Telvas", category: "Medication", key: "Addna" },
+        { id: "6", time: "09:35 AM", name: "Dexamethasone", dose: "1 Tablet", instruction: "After Addna", category: "Medication", key: "Dexamethasone" },
+        { id: "7", time: "09:35 AM", name: "Chymoral Forte", dose: "1 Tablet", instruction: "Morning dose", category: "Medication", key: "Chymoral Forte" },
+        { id: "8", time: "10:00 AM", name: "Cough Syrup", dose: "1 Teaspoon", instruction: "15 mins after pills (avoid water right after)", category: "Medication", key: "Cough Syrup" },
+        { id: "9", time: "10:15 AM", name: "Natrise 15mg", dose: "Half (½) Tablet", instruction: "Morning dose", category: "Medication", key: "Natrise 15mg" },
+        { id: "10", time: "12:45 PM", name: "Mucaine Gel", dose: "1-2 Spoons", instruction: "Before lunch", category: "Medication", key: "Mucaine Gel" },
+        { id: "11", time: "01:00 PM", name: "Lunch", dose: "Afternoon Meal", instruction: "Midday meal", category: "Meal", key: null },
+        { id: "12", time: "02:30 PM", name: "Mirago 50", dose: "1 Tablet", instruction: "Afternoon dose", category: "Medication", key: "Mirago 50" },
+        { id: "13", time: "02:40 PM", name: "Cough Syrup", dose: "1 Teaspoon", instruction: "After Mirago", category: "Medication", key: "Cough Syrup" },
+        { id: "14", time: "07:45 PM", name: "Mucaine Gel", dose: "1-2 Spoons", instruction: "Before dinner", category: "Medication", key: "Mucaine Gel" },
+        { id: "15", time: "08:00 PM", name: "Dinner", dose: "Evening Meal", instruction: "Night meal", category: "Meal", key: null },
+        { id: "16", time: "08:30 PM", name: "Addna", dose: "Half (½) Tablet", instruction: "After dinner", category: "Medication", key: "Addna" },
+        { id: "17", time: "08:35 PM", name: "Chymoral Forte", dose: "1 Tablet", instruction: "After dinner", category: "Medication", key: "Chymoral Forte" },
+        { id: "18", time: "08:50 PM", name: "Cough Syrup", dose: "1 Teaspoon", instruction: "15 mins after dinner pills", category: "Medication", key: "Cough Syrup" },
+        { id: "19", time: "10:00 PM", name: "Lenvatinib 4 mg", dose: "4 Capsules at once (16mg)", instruction: "Target Therapy - Crucial time", category: "Therapy", key: "Lenvatinib 4mg" }
+      ];
+
+      const toggleTask = (id) => {
+        const taskKey = `${date}-${id}`;
+        const isDone = !completedTasks[taskKey];
+        setCompletedTasks(prev => ({ ...prev, [taskKey]: isDone }));
+
+        // Deduct stock if marked complete for the first time
+        const item = scheduleItems.find(i => i.id === id);
+        if (isDone && item && item.key && medicineStock[item.key]) {
+          setMedicineStock(prev => ({
+            ...prev,
+            [item.key]: { ...prev[item.key], count: Math.max(0, prev[item.key].count - 1) }
+          }));
+        }
+      };
+
+      const handleImageUpload = (itemKey, e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (uploadEvent) => {
+            setCustomPhotos(prev => ({ ...prev, [itemKey]: uploadEvent.target.result }));
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+
+      const copyWhatsAppSummary = () => {
+        const completedCount = scheduleItems.filter(item => completedTasks[`${date}-${item.id}`]).length;
+        let text = `🏥 *Grandma's Care Status (${date})*\nProgress: ${completedCount}/${scheduleItems.length} tasks completed.\n\n`;
+        scheduleItems.forEach(item => {
+          const done = completedTasks[`${date}-${item.id}`];
+          text += `${done ? '✅' : '⏳'} *${item.time}* - ${item.name} (${item.dose})\n`;
+        });
+        navigator.clipboard.writeText(text);
+        alert("Daily summary copied to clipboard! You can paste it into WhatsApp.");
+      };
+
+      return (
+        <div className="max-w-4xl mx-auto p-4 sm:p-6">
+          <header className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <span className="bg-rose-100 text-rose-800 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">Thyroid & Throat Care</span>
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Grandma's Care Circle</h1>
+                <p className="text-sm text-slate-500 mt-0.5">Real-time shared medication & therapy schedule</p>
+              </div>
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <input 
+                  type="date" 
+                  value={date} 
+                  onChange={(e) => setDate(e.target.value)}
+                  className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                />
+                <button 
+                  onClick={copyWhatsAppSummary}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                  Share WhatsApp
+                </button>
+              </div>
+            </div>
+
+            {/* Navigation Tabs */}
+            <div className="flex gap-2 mt-6 border-b border-slate-200 pb-3">
+              <button 
+                onClick={() => setActiveTab('schedule')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'schedule' ? 'bg-rose-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              >
+                Today's Schedule ({scheduleItems.filter(i => completedTasks[`${date}-${i.id}`]).length}/{scheduleItems.length})
+              </button>
+              <button 
+                onClick={() => setActiveTab('stock')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'stock' ? 'bg-rose-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              >
+                Pill Stock & Refills
+              </button>
+            </div>
+          </header>
+
+          {activeTab === 'schedule' ? (
+            <div className="space-y-3">
+              {scheduleItems.map((item) => {
+                const isDone = !!completedTasks[`${date}-${item.id}`];
+                const photoSrc = customPhotos[item.key] || null;
+                const lowStock = item.key && medicineStock[item.key] && medicineStock[item.key].count <= 5;
+
+                return (
+                  <div 
+                    key={item.id} 
+                    className={`bg-white rounded-xl border p-4 transition flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${isDone ? 'border-emerald-300 bg-emerald-50/30' : 'border-slate-200 hover:border-slate-300 shadow-sm'}`}
+                  >
+                    <div className="flex items-start gap-4">
+                      {/* Visual Photo / Icon Thumbnail */}
+                      <div className="relative w-14 h-14 bg-slate-100 rounded-lg border border-slate-200 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                        {photoSrc ? (
+                          <img src={photoSrc} alt={item.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="text-center p-1">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase block">{item.category}</span>
+                            <span className="text-[9px] text-slate-400">Strip</span>
+                          </div>
+                        )}
+                        <label className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition flex items-center justify-center text-white text-[10px] font-medium cursor-pointer">
+                          Edit
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(item.key, e)} />
+                        </label>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md">{item.time}</span>
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-md ${item.category === 'Therapy' ? 'bg-purple-100 text-purple-800' : item.category === 'Meal' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}`}>{item.category}</span>
+                          {lowStock && <span className="text-xs bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded animate-pulse">Low Stock!</span>}
+                        </div>
+                        <h3 className={`text-base font-bold mt-1 ${isDone ? 'text-emerald-900 line-through' : 'text-slate-900'}`}>{item.name}</h3>
+                        <p className="text-xs text-slate-600 mt-0.5"><span className="font-semibold">Dose:</span> {item.dose} — {item.instruction}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                      <button
+                        onClick={() => toggleTask(item.id)}
+                        className={`w-full sm:w-auto px-5 py-2.5 rounded-xl font-medium text-sm transition flex items-center justify-center gap-2 shadow-sm ${isDone ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
+                      >
+                        {isDone ? (
+                          <>
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"/></svg>
+                            Completed
+                          </>
+                        ) : (
+                          <>Mark Done</>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {Object.entries(medicineStock).map(([medName, data]) => (
+                <div key={medName} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-slate-900">{medName}</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">Remaining stock count</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`text-lg font-extrabold px-3 py-1 rounded-lg ${data.count <= 5 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-800'}`}>
+                      {data.count} {data.unit}
+                    </span>
+                    <button 
+                      onClick={() => setMedicineStock(prev => ({ ...prev, [medName]: { ...data, count: data.count + 10 } }))}
+                      className="text-xs bg-slate-900 text-white px-2.5 py-1.5 rounded-lg hover:bg-slate-800 transition font-medium"
+                    >
+                      +10 Refill
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>
